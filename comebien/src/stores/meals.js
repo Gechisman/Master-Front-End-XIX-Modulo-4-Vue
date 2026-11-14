@@ -53,7 +53,9 @@ export const useMealsStore = defineStore('meals', {
       } else {
         this.favorites.push({
           id: this.nextId++,
-          name: meal.name
+          name: meal.name,
+          day: meal.day,
+          type: meal.type
         })
       }
     },
@@ -75,5 +77,6 @@ export const useMealsStore = defineStore('meals', {
     clearPlan() {
       this.meals = []
     }
-  }
+  },
+  persist: true
 })

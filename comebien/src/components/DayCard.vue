@@ -22,6 +22,7 @@ const emit = defineEmits([
 ])
 
 const mealTypes = [
+  { value: 'desayuno', label: '☕ Desayuno' },
   { value: 'comida', label: '☀️ Comida' },
   { value: 'cena', label: '🌙 Cena' }
 ]

@@ -1,49 +1,44 @@
-
 <script setup>
-import { reactive, watch } from 'vue'
+import { computed, ref, reactive, watch } from 'vue'
 
 import { useMealsStore } from '@/stores/meals'
 
 const mealsStore = useMealsStore()
 
-const days = [
-  'Lunes',
-  'Martes',
-  'Miércoles',
-  'Jueves',
-  'Viernes',
-  'Sábado',
-  'Domingo'
-]
+const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
+
+const searchTerm = ref('')
+
+const filteredFavorites = computed(() => {
+  return mealsStore.favorites.filter((favorite) =>
+    favorite.name.toLowerCase().includes(searchTerm.value.toLowerCase()),
+  )
+})
 
 // Opciones para reutilizar cada favorito
 const selections = reactive({})
 
 // Crear opciones para los favoritos existentes
 watch(
-  () => mealsStore.favorites.map(favorite => favorite.id),
+  () => mealsStore.favorites.map((favorite) => favorite.id),
   (ids) => {
-    ids.forEach(id => {
+    ids.forEach((id) => {
       if (!selections[id]) {
         selections[id] = {
-          day: 'Lunes',
-          type: 'comida'
+          day: mealsStore.favorites.find((favorite) => favorite.id === id)?.day || 'Lunes',
+          type: mealsStore.favorites.find((favorite) => favorite.id === id)?.type || 'comida',
         }
       }
     })
   },
-  { immediate: true }
+  { immediate: true },
 )
 
 // Añadir un favorito al calendario
 function addToPlan(favorite) {
   const selection = selections[favorite.id]
 
-  mealsStore.addFavoriteToPlan(
-    favorite,
-    selection.day,
-    selection.type
-  )
+  mealsStore.addFavoriteToPlan(favorite, selection.day, selection.type)
 
   alert(`${favorite.name} se ha añadido a tu plan semanal.`)
 }
@@ -54,30 +49,45 @@ function deleteFavorite(id) {
 }
 </script>
 
+
 <template>
   <section>
     <div class="favorites-heading">
       <span class="eyebrow">TUS RECETAS PREFERIDAS</span>
       <h1>Mis platos favoritos ❤️</h1>
-      <p>
-        Guarda tus platos preferidos y reutilízalos cuando quieras.
-      </p>
+      <p>Guarda tus platos preferidos y reutilízalos cuando quieras.</p>
     </div>
 
+    <div v-if="mealsStore.favorites.length > 0" class="favorite-search">
+      <input
+        v-model="searchTerm"
+        type="search"
+        placeholder="🔍 Buscar entre mis favoritos..."
+      />
+    </div>
+
+    <!-- Caso 1: todavía no hay favoritos -->
     <div v-if="mealsStore.favorites.length === 0" class="empty-state">
       <span class="empty-icon">❤️</span>
       <h2>Aún no tienes favoritos</h2>
-      <p>
-        Ve al plan semanal y marca algún plato con el corazón.
-      </p>
+      <p>Ve al plan semanal y marca algún plato con el corazón.</p>
       <RouterLink to="/" class="btn btn-primary">
         Ir al plan semanal
       </RouterLink>
     </div>
 
+    <!-- Caso 2: hay favoritos, pero ninguno coincide con la búsqueda -->
+    <p
+      v-else-if="filteredFavorites.length === 0"
+      class="no-results"
+    >
+      No hay favoritos que coincidan con tu búsqueda.
+    </p>
+
+    <!-- Caso 3: mostrar los favoritos encontrados -->
     <div v-else class="favorites-grid">
       <article
-        v-for="favorite in mealsStore.favorites"
+        v-for="favorite in filteredFavorites"
         :key="favorite.id"
         class="favorite-card"
       >
@@ -105,7 +115,11 @@ function deleteFavorite(id) {
               :id="`day-${favorite.id}`"
               v-model="selections[favorite.id].day"
             >
-              <option v-for="day in days" :key="day" :value="day">
+              <option
+                v-for="day in days"
+                :key="day"
+                :value="day"
+              >
                 {{ day }}
               </option>
             </select>
@@ -118,6 +132,7 @@ function deleteFavorite(id) {
               :id="`type-${favorite.id}`"
               v-model="selections[favorite.id].type"
             >
+              <option value="desayuno">☕ Desayuno</option>
               <option value="comida">☀️ Comida</option>
               <option value="cena">🌙 Cena</option>
             </select>
@@ -135,6 +150,7 @@ function deleteFavorite(id) {
     </div>
   </section>
 </template>
+
 
 <style scoped>
 .favorites-heading {
@@ -262,5 +278,17 @@ function deleteFavorite(id) {
   .favorites-grid {
     grid-template-columns: 1fr;
   }
+}
+
+.favorite-search {
+  margin-bottom: 20px;
+}
+
+.favorite-search input {
+  width: 100%;
+  padding: 13px;
+  border: 1px solid #dce4dc;
+  border-radius: 9px;
+  background: white;
 }
 </style>

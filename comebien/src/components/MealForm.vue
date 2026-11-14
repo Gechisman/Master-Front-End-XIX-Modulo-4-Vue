@@ -116,6 +116,15 @@ function cancelEdit() {
             <input
               v-model="form.type"
               type="radio"
+              value="desayuno"
+            />
+            ☕ Desayuno
+          </label>
+
+          <label class="radio-option">
+            <input
+              v-model="form.type"
+              type="radio"
               value="comida"
             />
             ☀️ Comida

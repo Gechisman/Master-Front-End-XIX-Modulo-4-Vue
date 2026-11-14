@@ -1,6 +1,5 @@
-
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
 import { useMealsStore } from '@/stores/meals'
 
@@ -11,15 +10,34 @@ import MealList from '@/components/MealList.vue'
 const mealsStore = useMealsStore()
 
 // Días de la semana
-const days = [
-  'Lunes',
-  'Martes',
-  'Miércoles',
-  'Jueves',
-  'Viernes',
-  'Sábado',
-  'Domingo'
-]
+const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
+
+// Filtros
+const searchTerm = ref('')
+const selectedDay = ref('todos')
+const selectedType = ref('todos')
+
+// Platos filtrados
+const filteredMeals = computed(() => {
+  return mealsStore.meals.filter((meal) => {
+    const matchesName = meal.name.toLowerCase().includes(searchTerm.value.toLowerCase())
+
+    const matchesDay = selectedDay.value === 'todos' || meal.day === selectedDay.value
+
+    const matchesType = selectedType.value === 'todos' || meal.type === selectedType.value
+
+    return matchesName && matchesDay && matchesType
+  })
+})
+
+// Días que queremos mostrar
+const visibleDays = computed(() => {
+  if (selectedDay.value === 'todos') {
+    return days
+  }
+
+  return [selectedDay.value]
+})
 
 // Plato que estamos editando
 const editingMeal = ref(null)
@@ -59,7 +77,7 @@ function clearPlan() {
   if (mealsStore.mealCount === 0) return
 
   const confirmed = window.confirm(
-    '¿Estás seguro de que quieres eliminar todos los platos del plan semanal?'
+    '¿Estás seguro de que quieres eliminar todos los platos del plan semanal?',
   )
 
   if (confirmed) {
@@ -91,11 +109,7 @@ function clearPlan() {
       </div>
     </div>
 
-    <MealForm
-      :meal-to-edit="editingMeal"
-      @save="saveMeal"
-      @cancel="cancelEdit"
-    />
+    <MealForm :meal-to-edit="editingMeal" @save="saveMeal" @cancel="cancelEdit" />
 
     <div class="list-heading">
       <div>
@@ -113,9 +127,62 @@ function clearPlan() {
       </button>
     </div>
 
+    <!-- Buscador y filtros -->
+    <div class="filters">
+      <div class="filter-search">
+        <label for="search-meals">Buscar plato</label>
+
+        <input
+          id="search-meals"
+          v-model="searchTerm"
+          type="search"
+          placeholder="Ej. Pollo, pasta, tortilla..."
+        />
+      </div>
+
+      <div class="filter-group">
+        <label for="filter-day">Día</label>
+
+        <select id="filter-day" v-model="selectedDay">
+          <option value="todos">Toda la semana</option>
+
+          <option v-for="day in days" :key="day" :value="day">
+            {{ day }}
+          </option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="filter-type">Categoría</label>
+
+        <select id="filter-type" v-model="selectedType">
+          <option value="todos">Todas</option>
+          <option value="desayuno">Desayuno</option>
+          <option value="comida">Comida</option>
+          <option value="cena">Cena</option>
+        </select>
+      </div>
+
+      <button
+        type="button"
+        class="reset-filters"
+        @click="
+          searchTerm = '';
+          selectedDay = 'todos';
+          selectedType = 'todos'
+        "
+      >
+        Limpiar filtros
+      </button>
+    </div>
+
+    <p v-if="filteredMeals.length === 0" class="no-results">
+      No se han encontrado platos con esos filtros.
+    </p>
+
     <MealList
-      :days="days"
-      :meals="mealsStore.meals"
+      :days="visibleDays"
+      :meals="filteredMeals"
       :favorites="mealsStore.favorites"
       @edit="editMeal"
       @delete="deleteMeal"
@@ -230,6 +297,78 @@ function clearPlan() {
   .list-heading {
     align-items: flex-start;
     flex-direction: column;
+  }
+}
+
+.filters {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr auto;
+  align-items: end;
+  gap: 15px;
+  background: white;
+  border: 1px solid #e8ede8;
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 20px;
+}
+
+.filter-search,
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.filters label {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.filters input,
+.filters select {
+  width: 100%;
+  padding: 11px;
+  border: 1px solid #dce4dc;
+  border-radius: 8px;
+  background: white;
+  min-width: 0;
+}
+
+.reset-filters {
+  padding: 11px;
+  border: none;
+  background: #edf4ee;
+  color: #27744b;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.no-results {
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  color: #78847c;
+  text-align: center;
+}
+
+@media (max-width: 750px) {
+  .filters {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .filter-search {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 450px) {
+  .filters {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-search {
+    grid-column: auto;
   }
 }
 </style>
